@@ -1,0 +1,91 @@
+import requests
+
+KELLY_MULTIPLIER = 0.25
+KELLY_BANKROLL = 3000
+show_anyways_flag = False
+
+def devig_4_way(single_mgm_odd, leg_odds_devig_book):
+    api_url = 'http://api.crazyninjaodds.com/api/devigger/v1/sportsbook_devigger.aspx?api=open'
+
+    params = {
+        'LegOdds': leg_odds_devig_book,
+        'FinalOdds': single_mgm_odd,
+        'DevigMethod': 4,
+        'Args': 'ev_p,fb_p,fo_o,kelly,dm'
+    }
+
+    api_response = requests.get(api_url, params=params)
+    response = api_response.json()
+    if (api_response.status_code == 200 and ('Final' in response)):
+        ev_percentage = response['Final']['EV_Percentage'] * 100
+
+        ev_percentage_formatted = f'{ev_percentage:.1f}%'
+        fair_value_odds = response['Final']['FairValue_Odds']
+
+        if (not show_anyways_flag and ev_percentage < 0):
+            print('Negative EV ', ev_percentage_formatted, f'{fair_value_odds:.0f}', '\n')   
+            return None
+
+        # extract the response
+        fair_value_percentage = response['Leg#1']['FairValue'] * 100
+        fair_value_percentage_formatted = f'{fair_value_percentage:.1f}%'
+
+        final_odds = response['Final']['FairValue_Odds']
+        final_odds_formatted = f'{final_odds:.0f}'
+
+        market_juice_percentage = response['Leg#1']['MarketJuice'] * 100
+        market_juice_percentage_formatted = f'{market_juice_percentage:.1f}%'
+
+        fb_percentage = response['Final']['FB_Percentage'] * 100
+        fb_percentage_formatted = f'{fb_percentage:.1f}%'
+
+        leg1_odds = response['Leg#1']['Odds']
+
+        kelly_quarter_unit = response['Final']['Kelly_Full'] * KELLY_MULTIPLIER
+        kelly_wager = KELLY_BANKROLL/100 * kelly_quarter_unit
+
+        print(f'Leg#1 ({leg1_odds}); Market Juice = {market_juice_percentage_formatted}; Fair Value = {fair_value_odds} ({fair_value_percentage_formatted})')
+        print(f'Final Odds ({final_odds_formatted})')
+        print(f'Summary; EV% = {ev_percentage_formatted}, Kelly Units = {kelly_quarter_unit:.2f}u, Kelly Wager = ${kelly_wager:.2f} (FB = {fb_percentage_formatted})\n')
+        return None
+    else:
+        return {'error': f'Failed to fetch data. Status code: {api_response.status_code}. Response: {api_response.json()}'}
+
+def get_odds_input(label):
+    mgm_odds = input(f"Enter the odds for {label} on MGM: ")
+    devig_book_odds = input(f"Enter the odds for {label} on Devig Book: ")
+    return mgm_odds, devig_book_odds
+
+def main():
+    # Get the lines from the user
+    first_line = input("Enter the first line (e.g., 5.5 Ks): ")
+    second_line = input("Enter the second line (e.g., 3.5 ER): ")
+
+    # Initialize dictionaries to store odds
+    mgm_odds_dict = {}
+    devig_book_odds_dict = {}
+
+    # Define combinations
+    combinations = [
+        f"o{first_line} & o{second_line}",
+        f"o{first_line} & u{second_line}",
+        f"u{first_line} & o{second_line}",
+        f"u{first_line} & u{second_line}",
+    ]
+
+    # Get odds for each combination
+    for combo in combinations:
+        mgm_odds, devig_book_odds = get_odds_input(combo)
+        mgm_odds_dict[combo] = mgm_odds
+        devig_book_odds_dict[combo] = devig_book_odds
+
+    # Format the output
+    for key in mgm_odds_dict:
+        devig_book_remaining = [odds for odds_key, odds in devig_book_odds_dict.items() if odds_key != key]
+        devig_book_formatted = f"{devig_book_odds_dict[key]}/{devig_book_remaining[0]}/{devig_book_remaining[1]}/{devig_book_remaining[2]}"
+        print(f"{key} MGM odds: {mgm_odds_dict[key]} Devig Book odds: {devig_book_formatted}")
+        devig_4_way(mgm_odds_dict[key], devig_book_formatted)
+        
+
+if __name__ == "__main__":
+    main()
