@@ -2,7 +2,6 @@ import requests
 
 KELLY_MULTIPLIER = 0.25
 KELLY_BANKROLL = 3000
-show_anyways_flag = False
 
 def devig_4_way(single_mgm_odd, leg_odds_devig_book):
     api_url = 'http://api.crazyninjaodds.com/api/devigger/v1/sportsbook_devigger.aspx?api=open'
@@ -23,7 +22,7 @@ def devig_4_way(single_mgm_odd, leg_odds_devig_book):
         fair_value_odds = response['Final']['FairValue_Odds']
         fair_value_odds_formatted = f'{fair_value_odds:.0f}'
 
-        if (not show_anyways_flag and ev_percentage < 0):
+        if (ev_percentage < 0):
             print('Negative EV ', ev_percentage_formatted, fair_value_odds_formatted, '\n')   
             return None
 
@@ -53,14 +52,20 @@ def devig_4_way(single_mgm_odd, leg_odds_devig_book):
         return {'error': f'Failed to fetch data. Status code: {api_response.status_code}. Response: {api_response.json()}'}
 
 def get_odds_input(label):
-    mgm_odds = input(f"Enter the odds for {label} on MGM: ")
-    devig_book_odds = input(f"Enter the odds for {label} on Devig Book: ")
+    mgm_odds = input(f'Enter the odds for {label} on MGM: ')
+    devig_book_odds = input(f'Enter the odds for {label} on Devig Book: ')
     return mgm_odds, devig_book_odds
+
+def get_all_odds_input():
+    all_mgm_odds = input('Enter the odds for MGM in o&o,o&u,u&u,u&o order (ex. 120/340/200/500): ')
+    all_devig_book_odds = input('Enter the odds for devig book in o&o,o&u,u&u,u&o order (ex. 120/340/200/500): ')
+    return all_mgm_odds, all_devig_book_odds
 
 def main():
     # Get the lines from the user
-    first_line = input("Enter the first line (e.g., 5.5 Ks): ")
-    second_line = input("Enter the second line (e.g., 3.5 ER): ")
+    first_line = input('Enter the first line (ex. 5.5 Ks): ')
+    second_line = input('Enter the second line (ex. 3.5 ER): ')
+    interpret_type = input('Enter input method. 1 for singles, 2 for combined: ')
 
     # Initialize dictionaries to store odds
     mgm_odds_dict = {}
@@ -68,24 +73,34 @@ def main():
 
     # Define combinations
     combinations = [
-        f"o{first_line} & o{second_line}",
-        f"o{first_line} & u{second_line}",
-        f"u{first_line} & u{second_line}",
-        f"u{first_line} & o{second_line}"
+        f'o{first_line} & o{second_line}',
+        f'o{first_line} & u{second_line}',
+        f'u{first_line} & u{second_line}',
+        f'u{first_line} & o{second_line}'
     ]
 
-    # Get odds for each combination
-    for combo in combinations:
-        mgm_odds, devig_book_odds = get_odds_input(combo)
-        mgm_odds_dict[combo] = mgm_odds
-        devig_book_odds_dict[combo] = devig_book_odds
+    if (interpret_type == '1'):
+        # Get odds for each combination
+        for combo in combinations:
+            mgm_odds, devig_book_odds = get_odds_input(combo)
+            mgm_odds_dict[combo] = mgm_odds
+            devig_book_odds_dict[combo] = devig_book_odds
 
+    else:
+        # Get all odds together
+        all_mgm_odds, all_devig_book_odds = get_all_odds_input()
+
+        # Set the dictionaries using zip, which pairs elements at each index from two tuples
+        for key, value in zip(combinations, all_mgm_odds.split('/')):
+            mgm_odds_dict[key] = value
+        for key, value in zip(combinations, all_devig_book_odds.split('/')):
+            devig_book_odds_dict[key] = value
+            
     # Format the output
     for key in mgm_odds_dict:
         devig_book_remaining = [odds for odds_key, odds in devig_book_odds_dict.items() if odds_key != key]
-        devig_book_formatted = f"{devig_book_odds_dict[key]}/{devig_book_remaining[0]}/{devig_book_remaining[1]}/{devig_book_remaining[2]}"
-        print(f"{key} MGM odds: {mgm_odds_dict[key]} Devig Book odds: {devig_book_formatted}")
+        devig_book_formatted = f'{devig_book_odds_dict[key]}/{devig_book_remaining[0]}/{devig_book_remaining[1]}/{devig_book_remaining[2]}'
+        print(f'{key} MGM odds: {mgm_odds_dict[key]} Devig Book odds: {devig_book_formatted}')
         devig_4_way(mgm_odds_dict[key], devig_book_formatted)
-        
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()
