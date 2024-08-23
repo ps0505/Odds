@@ -102,5 +102,6 @@ def main():
         devig_book_formatted = f'{devig_book_odds_dict[key]}/{devig_book_remaining[0]}/{devig_book_remaining[1]}/{devig_book_remaining[2]}'
         print(f'{key} MGM odds: {mgm_odds_dict[key]} Devig Book odds: {devig_book_formatted}')
         devig_4_way(mgm_odds_dict[key], devig_book_formatted)
+
 if __name__ == '__main__':
     main()
