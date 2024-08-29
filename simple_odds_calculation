@@ -30,8 +30,7 @@ def devig_4_way(single_mgm_odd, leg_odds_devig_book):
         fair_value_percentage = response['Leg#1']['FairValue'] * 100
         fair_value_percentage_formatted = f'{fair_value_percentage:.1f}%'
 
-        final_odds = response['Final']['FairValue_Odds']
-        final_odds_formatted = f'{final_odds:.0f}'
+        final_odds = response['Final']['Odds']
 
         market_juice_percentage = response['Leg#1']['MarketJuice'] * 100
         market_juice_percentage_formatted = f'{market_juice_percentage:.1f}%'
@@ -45,7 +44,7 @@ def devig_4_way(single_mgm_odd, leg_odds_devig_book):
         kelly_wager = KELLY_BANKROLL/100 * kelly_quarter_unit
 
         print(f'Leg#1 ({leg1_odds}); Market Juice = {market_juice_percentage_formatted}; Fair Value = {fair_value_odds_formatted} ({fair_value_percentage_formatted})')
-        print(f'Final Odds ({final_odds_formatted})')
+        print(f'Final Odds ({final_odds})')
         print(f'Summary; EV% = {ev_percentage_formatted}, Kelly Units = {kelly_quarter_unit:.2f}u, Kelly Wager = ${kelly_wager:.2f} (FB = {fb_percentage_formatted})\n')
         return None
     else:
