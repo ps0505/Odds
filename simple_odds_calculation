@@ -1,54 +1,4 @@
-import requests
-
-KELLY_MULTIPLIER = 0.25
-KELLY_BANKROLL = 18000
-
-def devig_cno_api(single_book_odd, leg_odds_sharp_book):
-    api_url = 'http://api.crazyninjaodds.com/api/devigger/v1/sportsbook_devigger.aspx?api=open'
-
-    params = {
-        'LegOdds': leg_odds_sharp_book,
-        'FinalOdds': single_book_odd,
-        'DevigMethod': 4,
-        'Args': 'ev_p,fb_p,fo_o,kelly,dm'
-    }
-
-    api_response = requests.get(api_url, params=params)
-    response = api_response.json()
-    if (api_response.status_code == 200 and ('Final' in response)):
-        ev_percentage = response['Final']['EV_Percentage'] * 100
-
-        ev_percentage_formatted = f'{ev_percentage:.1f}%'
-        fair_value_odds = response['Final']['FairValue_Odds']
-        fair_value_odds_formatted = f'{fair_value_odds:.0f}'
-
-        if (ev_percentage < 0):
-            print('Negative EV ', ev_percentage_formatted, fair_value_odds_formatted, '\n')   
-            return None
-
-        # extract the response
-        fair_value_percentage = response['Leg#1']['FairValue'] * 100
-        fair_value_percentage_formatted = f'{fair_value_percentage:.1f}%'
-
-        final_odds = response['Final']['Odds']
-
-        market_juice_percentage = response['Leg#1']['MarketJuice'] * 100
-        market_juice_percentage_formatted = f'{market_juice_percentage:.1f}%'
-
-        fb_percentage = response['Final']['FB_Percentage'] * 100
-        fb_percentage_formatted = f'{fb_percentage:.1f}%'
-
-        leg1_odds = response['Leg#1']['Odds']
-
-        kelly_quarter_unit = response['Final']['Kelly_Full'] * KELLY_MULTIPLIER
-        kelly_wager = KELLY_BANKROLL/100 * kelly_quarter_unit
-
-        print(f'Leg#1 ({leg1_odds}); Market Juice = {market_juice_percentage_formatted}; Fair Value = {fair_value_odds_formatted} ({fair_value_percentage_formatted})')
-        print(f'Final Odds ({final_odds})')
-        print(f'Summary; EV% = {ev_percentage_formatted}, Kelly Units = {kelly_quarter_unit:.2f}u, Kelly Wager = ${kelly_wager:.2f} (FB = {fb_percentage_formatted})\n')
-        return None
-    else:
-        return {'error': f'Failed to fetch data. Status code: {api_response.status_code}. Response: {api_response.json()}'}
+from devigger_helper import devig_cno_api
 
 def get_odds_input(label):
     mgm_odds = input(f'Enter the odds for {label} on MGM: ')
@@ -60,25 +10,14 @@ def get_all_odds_input():
     all_devig_book_odds = input('Enter the odds for devig book in o&o,o&u,u&u,u&o order (ex. 120/340/200/500): ')
     return all_mgm_odds, all_devig_book_odds
 
-def main():
-    # Get comparison type from user
-    comparison_type = input('Select comparison type:\n1. Two lines (4-way comparison)\n2. More than two lines (multi-way comparison)\nEnter choice (1 or 2): ')
-    if comparison_type == '1':
-        handle_four_way()
-    elif comparison_type == '2':
-        handle_multi_way()
-    else:
-        print('Invalid choice. Please enter 1 or 2.')
-        main()
-
 def handle_four_way():
     first_line = input('Enter the first line (ex. 5.5 Ks): ')
     second_line = input('Enter the second line (ex. 3.5 ER): ')
     interpret_type = input('Enter input method. 1 for singles, 2 for combined: ')
 
     # Initialize dictionaries to store odds
-    mgm_odds_dict = {}
-    devig_book_odds_dict = {}
+    desired_book_odds_dict = {}
+    sharp_book_odds_dict = {}
 
     # Define combinations
     combinations = [
@@ -91,34 +30,54 @@ def handle_four_way():
     if (interpret_type == '1'):
         # Get odds for each combination
         for combo in combinations:
-            mgm_odds, devig_book_odds = get_odds_input(combo)
-            mgm_odds_dict[combo] = mgm_odds
-            devig_book_odds_dict[combo] = devig_book_odds
+            desired_book_odds, sharp_book_odds = get_odds_input(combo)
+            desired_book_odds_dict[combo] = desired_book_odds
+            sharp_book_odds_dict[combo] = sharp_book_odds
 
     else:
         # Get all odds together
-        all_mgm_odds, all_devig_book_odds = get_all_odds_input()
+        all_desired_book_odds, all_sharp_book_odds = get_all_odds_input()
 
         # Set the dictionaries using zip, which pairs elements at each index from two tuples
-        for key, value in zip(combinations, all_mgm_odds.split('/')):
-            mgm_odds_dict[key] = value
-        for key, value in zip(combinations, all_devig_book_odds.split('/')):
-            devig_book_odds_dict[key] = value
+        for key, value in zip(combinations, all_desired_book_odds.split('/')):
+            desired_book_odds_dict[key] = value
+        for key, value in zip(combinations, all_sharp_book_odds.split('/')):
+            sharp_book_odds_dict[key] = value
             
     # Format the output
-    for key in mgm_odds_dict:
-        devig_book_remaining = [odds for odds_key, odds in devig_book_odds_dict.items() if odds_key != key]
-        devig_book_formatted = f'{devig_book_odds_dict[key]}/{devig_book_remaining[0]}/{devig_book_remaining[1]}/{devig_book_remaining[2]}'
-        print(f'{key} MGM odds: {mgm_odds_dict[key]} Devig Book odds: {devig_book_formatted}')
-        devig_cno_api(mgm_odds_dict[key], devig_book_formatted)
+    for key in desired_book_odds_dict:
+        devig_book_remaining = [odds for odds_key, odds in sharp_book_odds_dict.items() if odds_key != key]
+        devig_book_formatted = f'{sharp_book_odds_dict[key]}/{devig_book_remaining[0]}/{devig_book_remaining[1]}/{devig_book_remaining[2]}'
+        print(f'{key} MGM odds: {desired_book_odds_dict[key]} Devig Book odds: {devig_book_formatted}')
+        
+        result = devig_cno_api(desired_book_odds_dict[key], devig_book_formatted)
+        
+        if result['success']:
+            data = result['data']
+            print(f'Leg#1 ({data["leg1_odds"]}); Market Juice = {data["market_juice_percentage_formatted"]}; Fair Value = {data["fair_value_odds_formatted"]} ({data["fair_value_percentage_formatted"]})')
+            print(f'Final Odds ({data["final_odds"]})')
+            print(f'Summary; EV% = {data["ev_percentage_formatted"]}, Kelly Units = {data["kelly_quarter_unit"]:.2f}u, Kelly Wager = ${data["kelly_wager"]:.2f} (FB = {data["fb_percentage_formatted"]})\n')
+            
+            if data['ev_percentage'] < 0:
+                print(f'Negative EV {data["ev_percentage_formatted"]} {data["fair_value_odds_formatted"]}\n')
+        else:
+            print(f'Error: {result["error"]}\n')
 
 def handle_multi_way():
     sharp_odds = input('Enter the sharp odds separated by slashes (ex. 120/340/200/500/...): ')
     # keeping odds together for now
     devig_book_odds = input('Enter the devig book odds separated by slashes (ex. 120/340/200/500/...): ')
-    
 
-
+def main():
+    # Get comparison type from user
+    comparison_type = input('Select comparison type:\n1. Two lines (4-way comparison)\n2. More than two lines (multi-way comparison)\nEnter choice (1 or 2): ')
+    if comparison_type == '1':
+        handle_four_way()
+    elif comparison_type == '2':
+        handle_multi_way()
+    else:
+        print('Invalid choice. Please enter 1 or 2.')
+        main()
 
 if __name__ == '__main__':
     main()
