@@ -1,14 +1,14 @@
 import requests
 
 KELLY_MULTIPLIER = 0.25
-KELLY_BANKROLL = 3000
+KELLY_BANKROLL = 18000
 
-def devig_4_way(single_mgm_odd, leg_odds_devig_book):
+def devig_cno_api(single_book_odd, leg_odds_sharp_book):
     api_url = 'http://api.crazyninjaodds.com/api/devigger/v1/sportsbook_devigger.aspx?api=open'
 
     params = {
-        'LegOdds': leg_odds_devig_book,
-        'FinalOdds': single_mgm_odd,
+        'LegOdds': leg_odds_sharp_book,
+        'FinalOdds': single_book_odd,
         'DevigMethod': 4,
         'Args': 'ev_p,fb_p,fo_o,kelly,dm'
     }
@@ -61,7 +61,17 @@ def get_all_odds_input():
     return all_mgm_odds, all_devig_book_odds
 
 def main():
-    # Get the lines from the user
+    # Get comparison type from user
+    comparison_type = input('Select comparison type:\n1. Two lines (4-way comparison)\n2. More than two lines (multi-way comparison)\nEnter choice (1 or 2): ')
+    if comparison_type == '1':
+        handle_four_way()
+    elif comparison_type == '2':
+        handle_multi_way()
+    else:
+        print('Invalid choice. Please enter 1 or 2.')
+        main()
+
+def handle_four_way():
     first_line = input('Enter the first line (ex. 5.5 Ks): ')
     second_line = input('Enter the second line (ex. 3.5 ER): ')
     interpret_type = input('Enter input method. 1 for singles, 2 for combined: ')
@@ -100,7 +110,15 @@ def main():
         devig_book_remaining = [odds for odds_key, odds in devig_book_odds_dict.items() if odds_key != key]
         devig_book_formatted = f'{devig_book_odds_dict[key]}/{devig_book_remaining[0]}/{devig_book_remaining[1]}/{devig_book_remaining[2]}'
         print(f'{key} MGM odds: {mgm_odds_dict[key]} Devig Book odds: {devig_book_formatted}')
-        devig_4_way(mgm_odds_dict[key], devig_book_formatted)
+        devig_cno_api(mgm_odds_dict[key], devig_book_formatted)
+
+def handle_multi_way():
+    sharp_odds = input('Enter the sharp odds separated by slashes (ex. 120/340/200/500/...): ')
+    # keeping odds together for now
+    devig_book_odds = input('Enter the devig book odds separated by slashes (ex. 120/340/200/500/...): ')
+    
+
+
 
 if __name__ == '__main__':
     main()

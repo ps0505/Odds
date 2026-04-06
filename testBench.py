@@ -5,16 +5,12 @@ def main():
     arr_sharp = sharp_odds.split('/')
     arr_devig = devig_book_odds.split('/')
 
-
+    
     for index, individualOdd in enumerate(arr_devig):
-        out = []
-        for j in range(len(arr_sharp)):
-            if j == index:
-                out.insert(0,arr_sharp[j])
-            else:
-                out.append(arr_sharp[j])
-        print(individualOdd)
-        print(out)
+        out = arr_sharp[index:] + arr_sharp[:index]
+        
+    
+    
 
 
 
