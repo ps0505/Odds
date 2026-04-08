@@ -16,7 +16,7 @@ def handle_four_way():
     interpret_type = input('Enter input method. 1 for singles, 2 for combined: ')
 
     # Initialize dictionaries to store odds
-    desired_book_odds_dict = {}
+    target_book_odds_dict = {}
     sharp_book_odds_dict = {}
 
     # Define combinations
@@ -30,27 +30,27 @@ def handle_four_way():
     if (interpret_type == '1'):
         # Get odds for each combination
         for combo in combinations:
-            desired_book_odds, sharp_book_odds = get_odds_input(combo)
-            desired_book_odds_dict[combo] = desired_book_odds
+            target_book_odds, sharp_book_odds = get_odds_input(combo)
+            target_book_odds_dict[combo] = target_book_odds
             sharp_book_odds_dict[combo] = sharp_book_odds
 
     else:
         # Get all odds together
-        all_desired_book_odds, all_sharp_book_odds = get_all_odds_input()
+        all_target_book_odds, all_sharp_book_odds = get_all_odds_input()
 
         # Set the dictionaries using zip, which pairs elements at each index from two tuples
-        for key, value in zip(combinations, all_desired_book_odds.split('/')):
-            desired_book_odds_dict[key] = value
+        for key, value in zip(combinations, all_target_book_odds.split('/')):
+            target_book_odds_dict[key] = value
         for key, value in zip(combinations, all_sharp_book_odds.split('/')):
             sharp_book_odds_dict[key] = value
             
     # Format the output
-    for key in desired_book_odds_dict:
+    for key in target_book_odds_dict:
         devig_book_remaining = [odds for odds_key, odds in sharp_book_odds_dict.items() if odds_key != key]
         devig_book_formatted = f'{sharp_book_odds_dict[key]}/{devig_book_remaining[0]}/{devig_book_remaining[1]}/{devig_book_remaining[2]}'
-        print(f'{key} MGM odds: {desired_book_odds_dict[key]} Devig Book odds: {devig_book_formatted}')
+        print(f'{key} MGM odds: {target_book_odds_dict[key]} Devig Book odds: {devig_book_formatted}')
         
-        result = devig_cno_api(desired_book_odds_dict[key], devig_book_formatted)
+        result = devig_cno_api(target_book_odds_dict[key], devig_book_formatted)
         
         if result['success']:
             data = result['data']

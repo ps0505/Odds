@@ -4,6 +4,7 @@ KELLY_MULTIPLIER = 0.25
 KELLY_BANKROLL = 18000
 
 # helper function for devig cno api call and formatting the response for display
+# TODO: make it also return the original single_book_odd and leg_odds_sharp_book
 def devig_cno_api(single_book_odd, leg_odds_sharp_book):
     api_url = 'http://api.crazyninjaodds.com/api/devigger/v1/sportsbook_devigger.aspx?api=open'
 

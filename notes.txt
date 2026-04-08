@@ -1,0 +1,20 @@
+notes.txt
+target book: ['120', '340', '200', '500']
+arr sharp: ['120/399/231/232, '123/322/323/112']
+
+outer loop 120 (enumerate the target book array)
+    holder = []
+    inner loop arrange with desired ordering for every element of arr sharp (enumerate the arr sharp)
+        -> for each element within arr sharp, ex 120/399/231/232
+        - split it, so element = element.split('/')
+        - holder.append(element[index:] + element[:index]) // so for current item, we have it sorted. 
+    holder's contents which should be arr_sharp with its contents arranged internally
+    need to attach on 'avgb(' before it and then ')' after it.
+
+
+
+
+side note, figure out if way with regex to, based on index, grab that ith element and remove it then append it to the front (without damaging
+original set of odds because the order matters for future runs)
+so then for each inner loop there's no need to .split, and then .join back together. 
+current issue is that there could be any number of digits between slashes, so we can't perfectly account for it.
